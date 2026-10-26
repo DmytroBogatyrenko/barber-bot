@@ -28,3 +28,7 @@ export function normalizePhone(raw) {
   if (/^0\d{9}$/.test(cleaned)) return `+38${cleaned}`;
   return null;
 }
+
+export function bookingDateTime(b) {
+    return new Date(`${b.date}Т${b.time}:00`);
+}

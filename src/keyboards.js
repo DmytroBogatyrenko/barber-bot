@@ -2,6 +2,7 @@ import {Keyboard} from "grammy";
 
 export const mainMenu = new Keyboard()
   .text("Записатися")
+  .text("Мої записи")
   .row()
   .text("Послуги та ціни")
   .text("Контакти")

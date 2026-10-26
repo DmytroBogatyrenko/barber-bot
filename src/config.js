@@ -19,3 +19,4 @@ export const WORK_START = 12;
 export const WORK_END = 21; 
 export const DAYS_AHEAD = 7; 
 export const BOOKINGS_FILE = "bookings.json";
+export const CANCEL_MIN_HOURS = 2; 
