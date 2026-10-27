@@ -30,5 +30,5 @@ export function normalizePhone(raw) {
 }
 
 export function bookingDateTime(b) {
-    return new Date(`${b.date}Т${b.time}:00`);
+    return new Date(`${b.date}T${b.time}:00`);
 }

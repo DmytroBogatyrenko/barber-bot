@@ -5,9 +5,10 @@ import { prettyDate, bookingDateTime } from "../helpers.js";
 
 export function registerMyBookings(bot) {
     bot.hears("Мої записи", async (context) => {
+        console.log("Натиснули Мої записи, id:", context.from.id);
         const list = getUpcomingByUser(context.from.id);
 
-        if(list.lenght === 0) {
+        if(list.length === 0) {
             await context.reply("У вас немає майбутніх записів, натисність (Записатися)");
             return;
         }
@@ -15,14 +16,14 @@ export function registerMyBookings(bot) {
         for (const b of list) {
             const kb = new InlineKeyboard().text("Скасувати цей запис", `mycancel:${b.id}`);
             await context.reply(
-                `${b.service} (${b.price} грн \n ${prettyDate(b.date)}, ${b.time})`,
+                `${b.service} (${b.price} грн )\n ${prettyDate(b.date)}, ${b.time})`,
                 { reply_markup: kb}
             );
         }
     });
 
     bot.callbackQuery(/^mycancel:(\d+)$/, async (context) => {
-        const id = Number(context[1]);
+        const id = Number(context.match[1]);
         const booking = findBooking(id);
 
         if (!booking || booking.userId !== context.from.id) {
@@ -35,7 +36,7 @@ export function registerMyBookings(bot) {
 
         const hoursLeft = (bookingDateTime(booking) - new Date()) / 3_600_000;
         if (hoursLeft < CANCEL_MIN_HOURS) {
-            await ctx.answerCallbackQuery({
+            await context.answerCallbackQuery({
                 text: `Скасувати можна не пізніше ніж за ${CANCEL_MIN_HOURS} год до візиту. Зателефонуйте нам`,
                 show_alert: true,
             });
@@ -48,7 +49,7 @@ export function registerMyBookings(bot) {
         );
         if (ADMIN_ID) {
             try {
-                await ctx.api.sendMessage(
+                await context.api.sendMessage(
                 ADMIN_ID,
                 `Клієнт скасував запис\n\n` +
                     `${booking.service}\n` +
@@ -59,6 +60,6 @@ export function registerMyBookings(bot) {
             } catch (err) {
                 console.error("Не вдалося надіслати сповіщення майстру:", err.message);
             }
-            }
+        }
     });
 }

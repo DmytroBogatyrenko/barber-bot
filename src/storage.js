@@ -45,4 +45,4 @@ export function removeBooking(id) {
   const [removed] = bookings.splice(index, 1);
   saveToFile();
   return removed;
-}
+}  

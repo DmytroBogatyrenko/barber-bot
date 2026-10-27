@@ -41,18 +41,18 @@ export function registerBooking(bot) {
         });
     });
 
-    bot.callbackQuery(/^date:(\d{4}-\d{2}-\d{2})$/, async (ctx) => {
-    const date = ctx.match[1];
-    const s = sessions.get(ctx.from.id);
+    bot.callbackQuery(/^date:(\d{4}-\d{2}-\d{2})$/, async (context) => {
+    const date = context.match[1];
+    const s = sessions.get(context.from.id);
 
     if (!s || s.serviceIndex === undefined) {
-      await ctx.answerCallbackQuery({
+      await context.answerCallbackQuery({
         text: "Сесія застаріла. Натисніть «Записатися» ще раз",
         show_alert: true,
       });
       return;
     }
-    await ctx.answerCallbackQuery();
+    await context.answerCallbackQuery();
     s.date = date;
 
     const now = new Date();
@@ -72,22 +72,22 @@ export function registerBooking(bot) {
     if (count === 0) {
       const back = new InlineKeyboard().text("Інша дата", `service:${s.serviceIndex}`);
       addCancelRow(back);
-      await ctx.editMessageText(`На ${prettyDate(date)} вільного часу немає`, {
+      await context.editMessageText(`На ${prettyDate(date)} вільного часу немає`, {
         reply_markup: back,
       });
       return;
     }
 
     addCancelRow(kb);
-    await ctx.editMessageText(`${prettyDate(date)}\n\nОберіть час:`, { reply_markup: kb });
+    await context.editMessageText(`${prettyDate(date)}\n\nОберіть час:`, { reply_markup: kb });
   });
 
-  bot.callbackQuery(/^time:(\d{2}:\d{2})$/, async (ctx) => {
-    const time = ctx.match[1];
-    const s = sessions.get(ctx.from.id);
+  bot.callbackQuery(/^time:(\d{2}:\d{2})$/, async (context) => {
+    const time = context.match[1];
+    const s = sessions.get(context.from.id);
 
     if (!s || !s.date) {
-      await ctx.answerCallbackQuery({
+      await context.answerCallbackQuery({
         text: "Сесія застаріла. Натисніть «Записатися» ще раз",
         show_alert: true,
       });
@@ -95,42 +95,42 @@ export function registerBooking(bot) {
     }
 
     if (isTaken(s.date, time)) {
-      await ctx.answerCallbackQuery({
+      await context.answerCallbackQuery({
         text: "Цей час щойно зайняли. Оберіть інший",
         show_alert: true,
       });
       return;
     }
-    await ctx.answerCallbackQuery();
+    await context.answerCallbackQuery();
 
     s.time = time;
     s.step = "name";
-    await ctx.editMessageText(`Час: ${time}\n\nЯк до вас звертатися? Напишіть ваше ім'я`);
+    await context.editMessageText(`Час: ${time}\n\nЯк до вас звертатися? Напишіть ваше ім'я`);
   });
 
-  bot.on("message:contact", async (ctx) => {
-    const s = sessions.get(ctx.from.id);
+  bot.on("message:contact", async (context) => {
+    const s = sessions.get(context.from.id);
     if (!s || s.step !== "phone") return;
 
-    const raw = ctx.message.contact.phone_number;
-    await askConfirmation(ctx, s, normalizePhone(raw) ?? raw);
+    const raw = context.message.contact.phone_number;
+    await askConfirmation(context, s, normalizePhone(raw) ?? raw);
   });
 
-  bot.on("message:text", async (ctx) => {
-    const s = sessions.get(ctx.from.id);
+  bot.on("message:text", async (context) => {
+    const s = sessions.get(context.from.id);
     if (!s || !s.step) return;
 
-    const text = ctx.message.text.trim();
+    const text = context.message.text.trim();
     if (text.startsWith("/")) return;
 
     if (s.step === "name") {
       if (text.length < 2 || text.length > 40) {
-        await ctx.reply("Ім'я має бути від 2 до 40 символів. Спробуйте ще раз");
+        await context.reply("Ім'я має бути від 2 до 40 символів. Спробуйте ще раз");
         return;
       }
       s.name = text;
       s.step = "phone";
-      await ctx.reply(
+      await context.reply(
         "Дякуємо! Тепер надішліть номер телефону: натисніть кнопку нижче або напишіть його, наприклад 0501234567",
         { reply_markup: phoneMenu }
       );
@@ -140,26 +140,26 @@ export function registerBooking(bot) {
     if (s.step === "phone") {
       const phone = normalizePhone(text);
       if (!phone) {
-        await ctx.reply("Не схоже на український номер. Приклад: 0501234567 або +380501234567");
+        await context.reply("Не схоже на український номер. Приклад: 0501234567 або +380501234567");
         return;
       }
-      await askConfirmation(ctx, s, phone);
+      await askConfirmation(context, s, phone);
     }
   });
 
-  async function askConfirmation(ctx, s, phone) {
+  async function askConfirmation(context, s, phone) {
     s.phone = phone;
     s.step = "confirm";
     const service = services[s.serviceIndex];
 
-    await ctx.reply("Номер отримано", { reply_markup: mainMenu });
+    await context.reply("Номер отримано", { reply_markup: mainMenu });
 
     const kb = new InlineKeyboard()
       .text("Підтвердити", "confirm")
       .row()
       .text("Скасувати", "cancel");
 
-    await ctx.reply(
+    await context.reply(
       `Перевірте заявку:\n\n` +
         `Послуга: ${service.name} (${service.price} грн)\n` +
         `Дата: ${prettyDate(s.date)}\n` +
@@ -170,29 +170,29 @@ export function registerBooking(bot) {
     );
   }
 
-  bot.callbackQuery("confirm", async (ctx) => {
-    const s = sessions.get(ctx.from.id);
+  bot.callbackQuery("confirm", async (context) => {
+    const s = sessions.get(context.from.id);
 
     if (!s || s.step !== "confirm") {
-      await ctx.answerCallbackQuery({ text: "Заявка вже неактивна", show_alert: true });
+      await context.answerCallbackQuery({ text: "Заявка вже неактивна", show_alert: true });
       return;
     }
 
     if (isTaken(s.date, s.time)) {
-      await ctx.answerCallbackQuery({
+      await context.answerCallbackQuery({
         text: "На жаль, цей час щойно зайняли. Почніть запис заново",
         show_alert: true,
       });
-      sessions.delete(ctx.from.id);
+      sessions.delete(context.from.id);
       return;
     }
-    await ctx.answerCallbackQuery();
+    await context.answerCallbackQuery();
 
     const service = services[s.serviceIndex];
     const booking = {
       id: Date.now(),
-      userId: ctx.from.id,
-      username: ctx.from.username ?? null,
+      userId: context.from.id,
+      username: context.from.username ?? null,
       name: s.name,
       phone: s.phone,
       service: service.name,
@@ -203,16 +203,16 @@ export function registerBooking(bot) {
     };
 
     addBooking(booking);
-    sessions.delete(ctx.from.id);
+    sessions.delete(context.from.id);
 
-    await ctx.editMessageText(
+    await context.editMessageText(
       `Ви записані!\n\n${service.name}\n${prettyDate(booking.date)}, ${booking.time}\n\n` +
         `Чекаємо на вас. Якщо плани зміняться, зателефонуйте нам`
     );
 
     if (ADMIN_ID) {
       try {
-        await ctx.api.sendMessage(
+        await context.api.sendMessage(
           ADMIN_ID,
           `Нова заявка\n\n` +
             `${booking.service} (${booking.price} грн)\n` +
@@ -227,9 +227,9 @@ export function registerBooking(bot) {
     }
   });
 
-  bot.callbackQuery("cancel", async (ctx) => {
-    await ctx.answerCallbackQuery();
-    sessions.delete(ctx.from.id);
-    await ctx.editMessageText("Запис скасовано. Коли будете готові, натисніть «Записатися»");
+  bot.callbackQuery("cancel", async (context) => {
+    await context.answerCallbackQuery();
+    sessions.delete(context.from.id);
+    await context.editMessageText("Запис скасовано. Коли будете готові, натисніть «Записатися»");
   });
 }
